@@ -1,0 +1,12 @@
+version: '3.4'
+
+services:
+  webapi:
+    image: bruno-rinha
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5292:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development

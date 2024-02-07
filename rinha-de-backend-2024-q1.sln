@@ -1,0 +1,33 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.002.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "participantes", "participantes", "{7B9AB811-8CB7-4AA0-A367-5CAA7A314899}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "alleycatbruno", "alleycatbruno", "{835D470E-DFCD-41FC-A490-037E949A1940}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "rinha", "participantes\alleycatbruno\rinha\rinha.csproj", "{E7D7A049-862D-4335-AB54-C8C7E0E342E0}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E7D7A049-862D-4335-AB54-C8C7E0E342E0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E7D7A049-862D-4335-AB54-C8C7E0E342E0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E7D7A049-862D-4335-AB54-C8C7E0E342E0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E7D7A049-862D-4335-AB54-C8C7E0E342E0}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{835D470E-DFCD-41FC-A490-037E949A1940} = {7B9AB811-8CB7-4AA0-A367-5CAA7A314899}
+		{E7D7A049-862D-4335-AB54-C8C7E0E342E0} = {835D470E-DFCD-41FC-A490-037E949A1940}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {49A02484-82CC-4063-9C2D-98A7EF81886A}
+	EndGlobalSection
+EndGlobal

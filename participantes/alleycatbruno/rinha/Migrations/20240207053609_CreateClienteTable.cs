@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
@@ -23,6 +24,18 @@ namespace rinha.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Clientes", x => x.Id);
+                });
+
+            migrationBuilder.InsertData(
+                table: "Clientes",
+                columns: ["Id", "Limite", "SaldoInicial"],
+                values: new object[,]
+                {
+                    {1,100000m,0m},
+                    {2,80000m,0m},
+                    {3,1000000m,0m},
+                    {4,10000000m,0m},
+                    {5,500000m,0m}
                 });
         }
 

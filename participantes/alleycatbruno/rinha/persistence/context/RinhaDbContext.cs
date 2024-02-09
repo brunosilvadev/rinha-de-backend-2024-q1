@@ -4,12 +4,7 @@ using rinha.model;
 
 namespace rinha.persistence;
 
-public class RinhaDbContext : DbContext
+public class RinhaDbContext(DbContextOptions<RinhaDbContext> options) : DbContext(options)
 {
-    public RinhaDbContext(DbContextOptions<RinhaDbContext> options)
-        : base(options)
-    {
-    }
-
     public DbSet<Cliente> Clientes { get; set; }
 }

@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using rinha.persistence;
@@ -11,9 +12,11 @@ using rinha.persistence;
 namespace rinha.Migrations
 {
     [DbContext(typeof(RinhaDbContext))]
-    partial class RinhaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20240210051956_saldo")]
+    partial class saldo
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -66,7 +69,20 @@ namespace rinha.Migrations
 
                     b.HasKey("TransacaoId");
 
+                    b.HasIndex("ClienteId");
+
                     b.ToTable("Transacoes");
+                });
+
+            modelBuilder.Entity("rinha.model.Transacao", b =>
+                {
+                    b.HasOne("rinha.model.Cliente", "Cliente")
+                        .WithMany()
+                        .HasForeignKey("ClienteId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .IsRequired();
+
+                    b.Navigation("Cliente");
                 });
 #pragma warning restore 612, 618
         }

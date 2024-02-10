@@ -13,10 +13,6 @@ public class RinhaDbContext(DbContextOptions<RinhaDbContext> options) : DbContex
     {
         modelBuilder.Entity<Cliente>().HasKey(c => c.Id);
         modelBuilder.Entity<Transacao>().HasKey(t => t.TransacaoId);
-        modelBuilder.Entity<Transacao>().HasOne(t => t.Cliente).WithMany()
-			.HasForeignKey(c => c.ClienteId)
-			.OnDelete(DeleteBehavior.SetNull)
-			.IsRequired(true);
 
         base.OnModelCreating(modelBuilder);
     }

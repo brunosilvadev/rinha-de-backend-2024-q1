@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using rinha.persistence;
@@ -11,9 +12,11 @@ using rinha.persistence;
 namespace rinha.Migrations
 {
     [DbContext(typeof(RinhaDbContext))]
-    partial class RinhaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20240210062114_refactor")]
+    partial class refactor
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

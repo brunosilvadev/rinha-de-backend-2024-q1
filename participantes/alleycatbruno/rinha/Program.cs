@@ -24,9 +24,10 @@ app.MapGet("/clientes", async (RinhaDbContext ctx)=>
     return await ctx.Clientes.ToListAsync();
 });
 
-app.MapPost("/clientes/{id}/transacoes", async (int id, Transacao txn, ITransacaoWorker worker) =>
+app.MapPost("/clientes/{id}/transacoes", async (int id, TransacaoRequest txn, ITransacaoWorker worker) =>
 {
-    return await worker.ProcessarTransacao(txn);
+    var transacao = new Transacao(txn,id);
+    return await worker.ProcessarTransacao(transacao);
 });
 
 app.MapGet("/clientes/{id}/extrato", async (int id, ITransacaoWorker worker) =>

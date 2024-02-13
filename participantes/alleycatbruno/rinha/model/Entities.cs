@@ -58,6 +58,6 @@ public class Saldo
 }
 public class SaldoResponse
 {
-    public Saldo Saldo { get; set; }
+    public required Saldo Saldo { get; set; }
     public List<Transacao> Ultimas_transacoes { get; set; } = [];
 }

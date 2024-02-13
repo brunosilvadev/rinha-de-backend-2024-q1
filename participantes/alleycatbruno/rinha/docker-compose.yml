@@ -1,8 +1,9 @@
 version: '3.8'
 
 services:
-  webapi:
+  webapi_1: &api
     image: bruno-rinha
+    hostname: webapi_1
     build:
       context: .
       dockerfile: Dockerfile
@@ -12,6 +13,27 @@ services:
       - db
     environment:
       - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=rinhadb;User Id=myuser;Password=mypassword;
+  webapi_2:
+    <<: *api
+    hostname: webapi_2
+    environment:
+      - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=rinhadb;User Id=myuser;Password=mypassword;
+    ports:
+      - "5293:8080"
+  nginx:
+    image: nginx:latest
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "9999:9999"
+    depends_on:
+      - webapi_1
+      - webapi_2
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: "0.17"
+    #       memory: "10MB"
   db:
     image: postgres:latest
     environment:
@@ -21,8 +43,10 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - ./script.sql:/docker-entrypoint-initdb.d/script.sql
 volumes:
   postgres_data:
 networks:
-  app-network:
+  default:
+    driver: bridge
+    name: rinha-nginx-2024q1

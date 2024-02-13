@@ -18,12 +18,10 @@ public class TransacaoWorker(RinhaDbContext context) : ITransacaoWorker
         if (transacao.Tipo == 'c')
         {
             cliente.Saldo += transacao.Valor;
-            cliente.Limite -= transacao.Valor;
         }
         if (transacao.Tipo  == 'd')
         {
             cliente.Saldo -=  transacao.Valor;
-            cliente.Limite += transacao.Valor;
         }
         
         await _context.SaveChangesAsync();
@@ -33,28 +31,33 @@ public class TransacaoWorker(RinhaDbContext context) : ITransacaoWorker
             Limite = cliente.Limite
         });
     }
-    public async Task<SaldoResponse> ConsultarSaldo(int id)
-    {
-        var ultimasTransacoes = _context.Transacoes.Where(t => t.ClienteId == id)
+    public async Task<SaldoResponse> ConsultarSaldo(int id, decimal limite)
+    {        
+        var ultimasTransacoes = await _context.Transacoes.Where(t => t.ClienteId == id)
             .OrderByDescending(t => t.TransacaoId)
             .Take(10)
-            .ToList();
-
+            .ToListAsync();
+        
         return await Task.FromResult(new SaldoResponse()
         {
             Saldo = new Saldo()
             {
                 Data_extrato = DateTime.Now.ToUniversalTime(),
-                Limite = 0,
-                Total = ultimasTransacoes.Sum(t => t.Valor)
-            },
+                Limite = limite,
+                Total = ultimasTransacoes
+                    .Sum(t => t.Tipo == 'c' ? t.Valor : -t.Valor)
+            },  
             Ultimas_transacoes = ultimasTransacoes
         });
     }
+
+    public async Task<Cliente?> ClienteExiste(int id)
+        => await _context.Clientes.FirstOrDefaultAsync(c =>c.Id == id);
 }
 
 public interface  ITransacaoWorker
 {
     Task<TransacaoResponse> ProcessarTransacao(Transacao transacao);
-    Task<SaldoResponse> ConsultarSaldo(int id);
+    Task<SaldoResponse> ConsultarSaldo(int id, decimal limite);
+    Task<Cliente?> ClienteExiste(int id);
 }

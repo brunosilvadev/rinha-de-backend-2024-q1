@@ -12,27 +12,34 @@ builder.Services.AddScoped<ITransacaoWorker, TransacaoWorker>();
 builder.Services.AddDbContext<RinhaDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-
 var app = builder.Build();
 
 app.UseSwagger();
 app.UseSwaggerUI();
 
-
-app.MapGet("/clientes", async (RinhaDbContext ctx)=>
+app.MapPost("/clientes/{id}/transacoes",
+    async (int id, TransacaoRequest txn, ITransacaoWorker worker) =>
 {
-    return await ctx.Clientes.ToListAsync();
-});
-
-app.MapPost("/clientes/{id}/transacoes", async (int id, TransacaoRequest txn, ITransacaoWorker worker) =>
-{
+    var cliente = await worker.ClienteExiste(id);
+    if(cliente == null)
+    {
+        return Results.NotFound();
+    }
     var transacao = new Transacao(txn,id);
-    return await worker.ProcessarTransacao(transacao);
+    var operacao = await worker.ProcessarTransacao(transacao);
+    return Results.Ok(operacao);
 });
 
-app.MapGet("/clientes/{id}/extrato", async (int id, ITransacaoWorker worker) =>
+app.MapGet("/clientes/{id}/extrato",
+    async (int id, ITransacaoWorker worker) =>
 {
-    return await worker.ConsultarSaldo(id);
+    var cliente = await worker.ClienteExiste(id);
+    if(cliente == null)
+    {
+        return Results.NotFound();
+    }
+    var saldo = await worker.ConsultarSaldo(id, cliente.Limite);
+    return Results.Ok(saldo);
 });
 
 app.Run();

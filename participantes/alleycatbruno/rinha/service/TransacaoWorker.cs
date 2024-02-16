@@ -53,6 +53,19 @@ public class TransacaoWorker(RinhaDbContext context) : ITransacaoWorker
 
     public async Task<Cliente?> ClienteExiste(int id)
         => await _context.Clientes.FirstOrDefaultAsync(c =>c.Id == id);
+
+    public async Task<string> TestarDB()
+    {
+        try
+        {
+            await _context.Database.ExecuteSqlRawAsync("SELECT 1;");
+            return "Estamos no ar";
+        }
+        catch (Exception e)
+        {
+            return e.Message;
+        }
+    }
 }
 
 public interface  ITransacaoWorker
@@ -60,4 +73,5 @@ public interface  ITransacaoWorker
     Task<TransacaoResponse> ProcessarTransacao(Transacao transacao);
     Task<SaldoResponse> ConsultarSaldo(int id, decimal limite);
     Task<Cliente?> ClienteExiste(int id);
+    Task<string> TestarDB();
 }

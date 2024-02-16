@@ -42,4 +42,11 @@ app.MapGet("/clientes/{id}/extrato",
     return Results.Ok(saldo);
 });
 
+app.MapGet("/test-api", () => true);
+
+app.MapGet("/test-db", (ITransacaoWorker worker) =>
+{
+    return worker.TestarDB();
+});
+
 app.Run();

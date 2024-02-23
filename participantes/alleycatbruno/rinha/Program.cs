@@ -7,7 +7,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddScoped<ITransacaoWorker, TransacaoWorker>();
+builder.Services.AddTransient<ITransacaoWorker, TransacaoWorker>();
 builder.Services.AddScoped<IErrorService, ErrorService>();
 
 builder.Services.AddDbContext<RinhaDbContext>(options =>
@@ -33,7 +33,7 @@ app.MapPost("/clientes/{id}/transacoes",
     {
         return Results.UnprocessableEntity();
     }
-    
+
     return Results.Ok(operacao);
 });
 

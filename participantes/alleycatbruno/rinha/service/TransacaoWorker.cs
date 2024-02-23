@@ -10,9 +10,8 @@ public class TransacaoWorker(RinhaDbContext context, IErrorService errService) :
 
     public async Task<TransacaoResponse> ProcessarTransacao(Transacao transacao, int id)
     {
-        var cliente = await _context.Clientes
-            .Where(c => c.Id == transacao.ClienteId)
-            .FirstOrDefaultAsync();
+        var cliente = await ClienteExiste(id);
+
         if (cliente == null)
         {
             errService.NaoExiste = true;

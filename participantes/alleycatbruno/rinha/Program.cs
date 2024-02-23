@@ -8,6 +8,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddScoped<ITransacaoWorker, TransacaoWorker>();
+builder.Services.AddScoped<IErrorService, ErrorService>();
 
 builder.Services.AddDbContext<RinhaDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -18,15 +19,21 @@ app.UseSwagger();
 app.UseSwaggerUI();
 
 app.MapPost("/clientes/{id}/transacoes",
-    async (int id, TransacaoRequest txn, ITransacaoWorker worker) =>
+    async (int id, TransacaoRequest txn, ITransacaoWorker worker, IErrorService errService) =>
 {
-    var cliente = await worker.ClienteExiste(id);
-    if(cliente == null)
+    var transacao = new Transacao(txn,id);
+    var operacao = await worker.ProcessarTransacao(transacao, id);
+    
+    if(errService.NaoExiste)
     {
         return Results.NotFound();
     }
-    var transacao = new Transacao(txn,id);
-    var operacao = await worker.ProcessarTransacao(transacao);
+
+    if(errService.Overdraft)
+    {
+        return Results.UnprocessableEntity();
+    }
+    
     return Results.Ok(operacao);
 });
 

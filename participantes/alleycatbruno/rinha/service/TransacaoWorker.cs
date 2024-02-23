@@ -4,24 +4,37 @@ using Microsoft.EntityFrameworkCore;
 
 namespace rinha.transacao;
 
-public class TransacaoWorker(RinhaDbContext context) : ITransacaoWorker
+public class TransacaoWorker(RinhaDbContext context, IErrorService errService) : ITransacaoWorker
 {
     private readonly RinhaDbContext _context = context;
 
-    public async Task<TransacaoResponse> ProcessarTransacao(Transacao transacao)
+    public async Task<TransacaoResponse> ProcessarTransacao(Transacao transacao, int id)
     {
-        await _context.Transacoes.AddAsync(transacao);
         var cliente = await _context.Clientes
             .Where(c => c.Id == transacao.ClienteId)
-            .FirstOrDefaultAsync() ?? throw new Exception("Cliente nao encontrado");
+            .FirstOrDefaultAsync();
+        if (cliente == null)
+        {
+            errService.NaoExiste = true;
+            return new TransacaoResponse();
+        }
+            
+        if(transacao.Tipo == 'd')
+        {
+            var novoSaldo = cliente.Saldo - transacao.Valor;
+            if((novoSaldo * -1) > cliente.Limite)
+            {
+                errService.Overdraft = true;
+                return new TransacaoResponse();
+            }
+            cliente.Saldo -= transacao.Valor;
+        }
+        await _context.Transacoes.AddAsync(transacao);
+        
 
         if (transacao.Tipo == 'c')
         {
             cliente.Saldo += transacao.Valor;
-        }
-        if (transacao.Tipo  == 'd')
-        {
-            cliente.Saldo -=  transacao.Valor;
         }
         
         await _context.SaveChangesAsync();
@@ -70,7 +83,7 @@ public class TransacaoWorker(RinhaDbContext context) : ITransacaoWorker
 
 public interface  ITransacaoWorker
 {
-    Task<TransacaoResponse> ProcessarTransacao(Transacao transacao);
+    Task<TransacaoResponse> ProcessarTransacao(Transacao transacao, int id);
     Task<SaldoResponse> ConsultarSaldo(int id, decimal limite);
     Task<Cliente?> ClienteExiste(int id);
     Task<string> TestarDB();

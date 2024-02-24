@@ -21,6 +21,11 @@ app.UseSwaggerUI();
 app.MapPost("/clientes/{id}/transacoes",
     async (int id, TransacaoRequest txn, ITransacaoWorker worker, IErrorService errService) =>
 {
+    if(!errService.ValidaRequest(txn))
+    {
+        return Results.UnprocessableEntity();
+    }
+
     var transacao = new Transacao(txn,id);
     var operacao = await worker.ProcessarTransacao(transacao, id);
     

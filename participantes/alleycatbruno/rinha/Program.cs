@@ -10,8 +10,8 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddTransient<ITransacaoWorker, TransacaoWorker>();
 builder.Services.AddScoped<IErrorService, ErrorService>();
 
-builder.Services.AddDbContext<RinhaDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddDbContextPool<RinhaDbContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")), poolSize:128);
 
 var app = builder.Build();
 

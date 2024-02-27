@@ -16,8 +16,8 @@ public class TransacaoWorker(RinhaDbContext context, IErrorService errService) :
             return new TransacaoResponse();
         }
             
-        using var transaction = context.Database
-            .BeginTransaction(System.Data.IsolationLevel.Serializable);
+        using var transaction = await context.Database
+            .BeginTransactionAsync(System.Data.IsolationLevel.ReadCommitted);
 
         if(transacao.Tipo == 'd')
         {
@@ -51,19 +51,23 @@ public class TransacaoWorker(RinhaDbContext context, IErrorService errService) :
     }
     public async Task<SaldoResponse> ConsultarSaldo(int id, decimal limite)
     {        
+        using var transacao = context.Database
+            .BeginTransactionAsync(System.Data.IsolationLevel.ReadCommitted);
+
         var ultimasTransacoes = await context.Transacoes.Where(t => t.ClienteId == id)
             .OrderByDescending(t => t.TransacaoId)
             .Take(10)
             .ToListAsync();
         
+        var cliente = await ClienteExiste(id) ?? new Cliente();
+
         return await Task.FromResult(new SaldoResponse()
         {
             Saldo = new Saldo()
             {
                 Data_extrato = DateTime.Now.ToUniversalTime(),
                 Limite = limite,
-                Total = ultimasTransacoes
-                    .Sum(t => t.Tipo == 'c' ? t.Valor : -t.Valor)
+                Total = cliente.Saldo
             },  
             Ultimas_transacoes = ultimasTransacoes
         });

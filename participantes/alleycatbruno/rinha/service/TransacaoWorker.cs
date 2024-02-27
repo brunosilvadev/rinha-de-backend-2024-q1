@@ -36,12 +36,15 @@ public class TransacaoWorker(RinhaDbContext context, IErrorService errService) :
             cliente.Saldo += transacao.Valor;
         }
         
-        await _context.SaveChangesAsync();
-        return await Task.FromResult(new TransacaoResponse()
+        if(await UpdateClienteAsync(cliente))
         {
-            Saldo = cliente.Saldo,
-            Limite = cliente.Limite
-        });
+            return await Task.FromResult(new TransacaoResponse()
+            {
+                Saldo = cliente.Saldo,
+                Limite = cliente.Limite
+            });
+        }
+        return new TransacaoResponse();
     }
     public async Task<SaldoResponse> ConsultarSaldo(int id, decimal limite)
     {        
@@ -77,6 +80,42 @@ public class TransacaoWorker(RinhaDbContext context, IErrorService errService) :
         {
             return e.Message;
         }
+    }
+
+    private async Task<bool> UpdateClienteAsync(Cliente updatedCliente)
+    {
+        int tentativas = 3;
+        for (int retry = 0; retry < tentativas; retry++)
+        {
+            try
+            {
+                _context.Clientes.Update(updatedCliente);
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            catch(DbUpdateConcurrencyException ex)
+            {
+                Console.WriteLine("pegou");
+                if(retry == tentativas -1)
+                {
+                    throw;
+                }
+                foreach(var entry in ex.Entries)
+                {
+                    if(entry.Entity is Cliente)
+                    {
+                        var dbValue = await entry.GetDatabaseValuesAsync();
+                        if(dbValue == null)
+                        {
+                            return false;
+                        }
+
+                        entry.OriginalValues.SetValues(dbValue);
+                    }
+                }
+            }
+        }
+        return false;
     }
 }
 

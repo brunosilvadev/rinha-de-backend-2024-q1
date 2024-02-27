@@ -11,7 +11,13 @@ public class RinhaDbContext(DbContextOptions<RinhaDbContext> options) : DbContex
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Cliente>().HasKey(c => c.Id);
+        modelBuilder.Entity<Cliente>()
+            .Property(p => p.Version)
+            .IsConcurrencyToken()
+            .ValueGeneratedOnAddOrUpdate();
+
         modelBuilder.Entity<Transacao>().HasKey(t => t.TransacaoId);
+        
 
         base.OnModelCreating(modelBuilder);
     }

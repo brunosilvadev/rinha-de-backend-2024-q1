@@ -1,8 +1,11 @@
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
 -- Create the Cliente table
 CREATE TABLE "Clientes" (
     "Id" SERIAL PRIMARY KEY,
     "Limite" DECIMAL NOT NULL,
-    "Saldo" DECIMAL NOT NULL
+    "Saldo" DECIMAL NOT NULL,
+    "Version" BYTEA DEFAULT gen_random_bytes(16)
 );
 
 -- Create the Transacao table

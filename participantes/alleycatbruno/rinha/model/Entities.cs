@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 
 namespace rinha.model;
@@ -6,6 +7,8 @@ public class Cliente
     public int Id { get; set; }
     public decimal Limite { get; set; }
     public decimal Saldo { get; set; }
+    [ConcurrencyCheck]
+    public byte[] Version { get; set; } = Guid.NewGuid().ToByteArray();
 }
 
 public class TransacaoRequest

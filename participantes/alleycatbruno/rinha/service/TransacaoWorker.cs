@@ -6,8 +6,6 @@ namespace rinha.transacao;
 
 public class TransacaoWorker(RinhaDbContext context, IErrorService errService) : ITransacaoWorker
 {
-    private readonly RinhaDbContext _context = context;
-
     public async Task<TransacaoResponse> ProcessarTransacao(Transacao transacao, int id)
     {
         var cliente = await ClienteExiste(id);
@@ -18,6 +16,9 @@ public class TransacaoWorker(RinhaDbContext context, IErrorService errService) :
             return new TransacaoResponse();
         }
             
+        using var transaction = context.Database
+            .BeginTransaction(System.Data.IsolationLevel.Serializable);
+
         if(transacao.Tipo == 'd')
         {
             var novoSaldo = cliente.Saldo - transacao.Valor;
@@ -27,8 +28,9 @@ public class TransacaoWorker(RinhaDbContext context, IErrorService errService) :
                 return new TransacaoResponse();
             }
             cliente.Saldo -= transacao.Valor;
+            cliente.Version = Guid.NewGuid().ToByteArray();
         }
-        await _context.Transacoes.AddAsync(transacao);
+        await context.Transacoes.AddAsync(transacao);
         
 
         if (transacao.Tipo == 'c')
@@ -38,6 +40,7 @@ public class TransacaoWorker(RinhaDbContext context, IErrorService errService) :
         
         if(await UpdateClienteAsync(cliente))
         {
+            await transaction.CommitAsync();
             return await Task.FromResult(new TransacaoResponse()
             {
                 Saldo = cliente.Saldo,
@@ -48,7 +51,7 @@ public class TransacaoWorker(RinhaDbContext context, IErrorService errService) :
     }
     public async Task<SaldoResponse> ConsultarSaldo(int id, decimal limite)
     {        
-        var ultimasTransacoes = await _context.Transacoes.Where(t => t.ClienteId == id)
+        var ultimasTransacoes = await context.Transacoes.Where(t => t.ClienteId == id)
             .OrderByDescending(t => t.TransacaoId)
             .Take(10)
             .ToListAsync();
@@ -67,13 +70,13 @@ public class TransacaoWorker(RinhaDbContext context, IErrorService errService) :
     }
 
     public async Task<Cliente?> ClienteExiste(int id)
-        => await _context.Clientes.FirstOrDefaultAsync(c =>c.Id == id);
+        => await context.Clientes.FirstOrDefaultAsync(c =>c.Id == id);
 
     public async Task<string> TestarDB()
     {
         try
         {
-            await _context.Database.ExecuteSqlRawAsync("SELECT 1;");
+            await context.Database.ExecuteSqlRawAsync("SELECT 1;");
             return "Estamos no ar";
         }
         catch (Exception e)
@@ -89,8 +92,8 @@ public class TransacaoWorker(RinhaDbContext context, IErrorService errService) :
         {
             try
             {
-                _context.Clientes.Update(updatedCliente);
-                await _context.SaveChangesAsync();
+                context.Clientes.Update(updatedCliente);
+                await context.SaveChangesAsync();
                 return true;
             }
             catch(DbUpdateConcurrencyException ex)

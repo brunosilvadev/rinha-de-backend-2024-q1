@@ -7,11 +7,11 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddTransient<ITransacaoWorker, TransacaoWorker>();
+builder.Services.AddScoped<ITransacaoWorker, TransacaoWorker>();
 builder.Services.AddScoped<IErrorService, ErrorService>();
 
 builder.Services.AddDbContextPool<RinhaDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")), poolSize:128);
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")), poolSize:200);
 
 var app = builder.Build();
 
@@ -43,14 +43,15 @@ app.MapPost("/clientes/{id}/transacoes",
 });
 
 app.MapGet("/clientes/{id}/extrato",
-    async (int id, ITransacaoWorker worker) =>
+    async (int id, ITransacaoWorker worker, IErrorService errorService) =>
 {
-    var cliente = await worker.ClienteExiste(id);
-    if(cliente == null)
+    var saldo = await worker.ConsultarSaldo(id);
+
+    if(errorService.NaoExiste)
     {
         return Results.NotFound();
     }
-    var saldo = await worker.ConsultarSaldo(id, cliente.Limite);
+    
     return Results.Ok(saldo);
 });
 

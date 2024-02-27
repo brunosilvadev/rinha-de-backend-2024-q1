@@ -49,32 +49,39 @@ public class TransacaoWorker(RinhaDbContext context, IErrorService errService) :
         }
         return new TransacaoResponse();
     }
-    public async Task<SaldoResponse> ConsultarSaldo(int id, decimal limite)
-    {        
-        using var transacao = context.Database
+    public async Task<SaldoResponse?> ConsultarSaldo(int id)
+    {
+        using var transaction = await context.Database
             .BeginTransactionAsync(System.Data.IsolationLevel.ReadCommitted);
 
-        var ultimasTransacoes = await context.Transacoes.Where(t => t.ClienteId == id)
-            .OrderByDescending(t => t.TransacaoId)
-            .Take(10)
-            .ToListAsync();
-        
-        var cliente = await ClienteExiste(id) ?? new Cliente();
+        var cliente = await ClienteExiste(id);
+        if(cliente == null)
+        {
+            errService.NaoExiste = true;
+            return null;
+        }
+        var transacoes = await context.Transacoes.Where(t => t.ClienteId == id)
+                .OrderByDescending(t => t.TransacaoId)
+                .Take(10)
+                .ToListAsync();
 
-        return await Task.FromResult(new SaldoResponse()
+        var response = new SaldoResponse()
         {
             Saldo = new Saldo()
             {
                 Data_extrato = DateTime.Now.ToUniversalTime(),
-                Limite = limite,
+                Limite = cliente.Limite,
                 Total = cliente.Saldo
-            },  
-            Ultimas_transacoes = ultimasTransacoes
-        });
+            },
+            Ultimas_transacoes = transacoes
+        };
+        
+        await transaction.CommitAsync();
+        return response;
     }
 
     public async Task<Cliente?> ClienteExiste(int id)
-        => await context.Clientes.FirstOrDefaultAsync(c =>c.Id == id);
+        => await context.Clientes.AsNoTracking().FirstOrDefaultAsync(c =>c.Id == id);
 
     public async Task<string> TestarDB()
     {
@@ -129,7 +136,7 @@ public class TransacaoWorker(RinhaDbContext context, IErrorService errService) :
 public interface  ITransacaoWorker
 {
     Task<TransacaoResponse> ProcessarTransacao(Transacao transacao, int id);
-    Task<SaldoResponse> ConsultarSaldo(int id, decimal limite);
+    Task<SaldoResponse?> ConsultarSaldo(int id);
     Task<Cliente?> ClienteExiste(int id);
     Task<string> TestarDB();
 }

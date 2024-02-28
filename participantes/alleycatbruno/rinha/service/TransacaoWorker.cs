@@ -52,7 +52,7 @@ public class TransacaoWorker(RinhaDbContext context, IErrorService errService) :
     public async Task<SaldoResponse?> ConsultarSaldo(int id)
     {
         using var transaction = await context.Database
-            .BeginTransactionAsync(System.Data.IsolationLevel.ReadCommitted);
+            .BeginTransactionAsync(System.Data.IsolationLevel.RepeatableRead);
 
         var cliente = await ClienteExiste(id);
         if(cliente == null)

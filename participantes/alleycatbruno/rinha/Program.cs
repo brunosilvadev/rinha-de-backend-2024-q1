@@ -8,10 +8,11 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddScoped<ITransacaoWorker, TransacaoWorker>();
-builder.Services.AddScoped<IErrorService, ErrorService>();
+builder.Services.AddScoped<IExtratoWorker, ExtratoWorker>();
+builder.Services.AddScoped<IValidatorService, ValidatorService>();
 
-builder.Services.AddDbContextPool<RinhaDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")), poolSize:200);
+builder.Services.AddDbContext<RinhaDbContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 var app = builder.Build();
 
@@ -19,7 +20,7 @@ app.UseSwagger();
 app.UseSwaggerUI();
 
 app.MapPost("/clientes/{id}/transacoes",
-    async (int id, TransacaoRequest txn, ITransacaoWorker worker, IErrorService errService) =>
+    async (int id, TransacaoRequest txn, ITransacaoWorker worker, IValidatorService errService) =>
 {
     if(!errService.ValidaRequest(txn))
     {
@@ -43,7 +44,7 @@ app.MapPost("/clientes/{id}/transacoes",
 });
 
 app.MapGet("/clientes/{id}/extrato",
-    async (int id, ITransacaoWorker worker, IErrorService errorService) =>
+    async (int id, IExtratoWorker worker, IValidatorService errorService) =>
 {
     var saldo = await worker.ConsultarSaldo(id);
 

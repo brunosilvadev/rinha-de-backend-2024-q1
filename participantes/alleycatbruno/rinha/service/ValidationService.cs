@@ -2,7 +2,7 @@ using rinha.model;
 
 namespace rinha.transacao;
 
-public class ErrorService : IErrorService
+public class ValidatorService : IValidatorService
 {
     public bool Overdraft {get;set;}
     public bool NaoExiste {get;set;}
@@ -30,7 +30,7 @@ public class ErrorService : IErrorService
     }
 }
 
-public interface IErrorService
+public interface IValidatorService
 {
     bool Overdraft {get;set;}
     bool NaoExiste {get;set;}

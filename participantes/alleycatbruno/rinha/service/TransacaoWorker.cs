@@ -1,72 +1,50 @@
 using rinha.persistence;
 using rinha.model;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Cryptography;
+using Npgsql;
+using NpgsqlTypes;
 
 namespace rinha.transacao;
 
-public class TransacaoWorker(RinhaDbContext context, IValidatorService validatorService, IHostApplicationLifetime app) : ITransacaoWorker
+public class TransacaoWorker(RinhaDbContext context, IValidatorService validatorService) : ITransacaoWorker
 {
     public async Task<TransacaoResponse> ProcessarTransacao(Transacao transacao, int id)
     {
-
-        
-
-        var cliente = await ClienteExiste(id);
-        bool creditOrDebit = true;
-
-        if (cliente == null)
+        if (id < 1 || id > 5)
         {
             validatorService.NaoExiste = true;
             return new TransacaoResponse();
-        }            
+        }
+        bool IsCreditNotDebit = transacao.Tipo == 'c';
 
-        if(transacao.Tipo == 'd')
+        var idParameter = new NpgsqlParameter("@cliente", NpgsqlDbType.Integer) { Value = id};
+        var valorParameter = new NpgsqlParameter("@valor", NpgsqlDbType.Bigint) { Value = transacao.Valor };
+        var descricaoParameter = new NpgsqlParameter("@descricao", NpgsqlDbType.Text) { Value = transacao.Descricao };
+
+        var conn = context.Database.GetDbConnection();
+        await conn.OpenAsync();
+        using (var command = conn.CreateCommand())
         {
-            var novoSaldo = cliente.Saldo - transacao.Valor;
-            if((novoSaldo * -1) > cliente.Limite)
+            command.CommandText = IsCreditNotDebit ? "Select debit(@cliente, @valor, @descricao);" : "Select debit(@cliente, @valor, @descricao);";
+            command.Parameters.Add(idParameter);
+            command.Parameters.Add(valorParameter);
+            command.Parameters.Add(descricaoParameter);
+            var result = await command.ExecuteScalarAsync();
+            var returnedValue = result != DBNull.Value ? Convert.ToInt64(result) : 0;
+
+            if (result == DBNull.Value)
             {
                 validatorService.Overdraft = true;
                 return new TransacaoResponse();
             }
-            creditOrDebit = false;
-        }
-        
-        int tentativas = 50;
-        for (int retry = 0; retry < tentativas; retry++)
-        {
-            try
-            {
-                using var transaction = await context.Database
-                    .BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
-                
-                await context.Transacoes.AddAsync(transacao);
 
-                var clienteToUpdate = await context.Clientes.FindAsync(id);
-                if(clienteToUpdate == null) return new TransacaoResponse();
-
-                clienteToUpdate.Saldo = creditOrDebit ?
-                    clienteToUpdate.Saldo + transacao.Valor :
-                    clienteToUpdate.Saldo - transacao.Valor;
-                
-                await context.SaveChangesAsync();
-                await transaction.CommitAsync();
-                return new TransacaoResponse()
-                {
-                    Saldo = cliente.Saldo,
-                    Limite = clienteToUpdate.Limite
-                };
-            }
-            catch
+            return new TransacaoResponse()
             {
-                if(retry >= tentativas -1)
-                {
-                    throw;
-                }               
-            }
+                Saldo = returnedValue,
+                Limite = Limites[id]
+            };
         }
-        Console.WriteLine("falha fatal");
-        app.StopApplication();
-        return new TransacaoResponse();
     }
 
     public async Task<Cliente?> ClienteExiste(int id)
@@ -84,6 +62,8 @@ public class TransacaoWorker(RinhaDbContext context, IValidatorService validator
             return e.Message;
         }
     }
+
+    private static readonly int[] Limites = [0, 1000 * 100, 800 * 100, 10000 * 100, 100000 * 100, 5000 * 100];
 }
 
 public interface  ITransacaoWorker

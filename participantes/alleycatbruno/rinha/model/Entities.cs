@@ -7,8 +7,6 @@ public class Cliente
     public int Id { get; set; }
     public decimal Limite { get; set; }
     public decimal Saldo { get; set; }
-    [ConcurrencyCheck]
-    public byte[] Version { get; set; } = Guid.NewGuid().ToByteArray();
 }
 
 public class TransacaoRequest
@@ -50,7 +48,7 @@ public class Transacao
 }
 public class TransacaoResponse
 {
-    public decimal Limite { get; set; }
+    public decimal? Limite { get; set; }
     public decimal Saldo { get; set; }
 }
 public class Saldo

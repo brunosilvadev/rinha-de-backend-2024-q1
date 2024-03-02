@@ -1,9 +1,10 @@
+using Microsoft.AspNetCore.Http.Timeouts;
 using Microsoft.EntityFrameworkCore;
 using rinha.model;
 using rinha.persistence;
 using rinha.transacao;
 
-var builder = WebApplication.CreateBuilder(args);
+var builder = WebApplication.CreateSlimBuilder(args);
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -11,8 +12,10 @@ builder.Services.AddScoped<ITransacaoWorker, TransacaoWorker>();
 builder.Services.AddScoped<IExtratoWorker, ExtratoWorker>();
 builder.Services.AddScoped<IValidatorService, ValidatorService>();
 
-builder.Services.AddDbContext<RinhaDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddDbContextPool<RinhaDbContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")), poolSize:200);
+
+builder.Services.AddRequestTimeouts(options => options.DefaultPolicy = new RequestTimeoutPolicy { Timeout = TimeSpan.FromSeconds(60) });
 
 var app = builder.Build();
 

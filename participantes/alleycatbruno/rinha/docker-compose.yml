@@ -12,16 +12,18 @@ services:
     depends_on:
       - db
     environment:
+      - ASPNETCORE_ENVIRONMENT=Production
       - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=rinhadb;User Id=myuser;Password=mypassword;
-    # deploy:
-    #   resources:
-    #     limits:
-    #       cpus: "0.30"
-    #       memory: "120MB"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.30"
+          memory: "100MB"
   webapi_2:
     <<: *api
     hostname: webapi_2
     environment:
+      - ASPNETCORE_ENVIRONMENT=Production
       - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=rinhadb;User Id=myuser;Password=mypassword;
     ports:
       - "5293:8080"
@@ -34,11 +36,11 @@ services:
     depends_on:
       - webapi_1
       - webapi_2
-    # deploy:
-    #   resources:
-    #     limits:
-    #       cpus: "0.45"
-    #       memory: "40MB"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.45"
+          memory: "50MB"
   db:
     image: postgres:latest
     environment:
@@ -51,11 +53,11 @@ services:
       - ./script.sql:/docker-entrypoint-initdb.d/script.sql
       - ./config/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
     command: 'postgres -c checkpoint_timeout=600 -c max_wal_size=4096 -c max_connections=1000 -c shared_buffers=128MB -c synchronous_commit=off -c fsync=off -c full_page_writes=off' 
-    # deploy:
-    #   resources:
-    #     limits:
-    #       cpus: "0.45"
-    #       memory: "270MB"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.45"
+          memory: "300MB"
 volumes:
   postgres_data:
 networks:

@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 
-namespace rinha.model;
+namespace Rinha.Data;
 public class Cliente(int Id, int Limite, long Saldo)
 {
     public int Id { get; set; } = Id;
@@ -10,12 +10,6 @@ public class Cliente(int Id, int Limite, long Saldo)
     public ICollection<Transacao> Transacoes { get; set; } = [];
 }
 
-public class TransacaoRequest
-{
-    public decimal Valor { get; set; }
-    public char Tipo { get; set; }
-    public string? Descricao { get; set; }
-}
 public class Transacao
 {
     public Transacao()
@@ -34,7 +28,11 @@ public class Transacao
     public Cliente? Cliente { get; set; }
     public DateTime Realizada_em { get; set; }
 }
-public record TransacaoResponse(int Limite, long Saldo);
+public class TransacaoResponse(int Limite, long Saldo)
+{
+    public int Limite { get; set; } = Limite;
+    public long Saldo { get; set; } = Saldo;
+}
 public class Saldo
 {
         public long Total { get; set; }

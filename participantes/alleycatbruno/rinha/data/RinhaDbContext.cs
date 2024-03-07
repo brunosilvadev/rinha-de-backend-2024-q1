@@ -1,13 +1,11 @@
 using Microsoft.EntityFrameworkCore;
-using rinha.model;
 
-namespace rinha.persistence;
+namespace Rinha.Data;
 
 public class RinhaDbContext(DbContextOptions<RinhaDbContext> options) : DbContext(options)
 {
     public DbSet<Cliente> Clientes { get; set; }
     public DbSet<Transacao> Transacoes { get; set; }
-
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Transacao>()

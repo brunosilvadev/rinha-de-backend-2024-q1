@@ -5,7 +5,7 @@ CREATE UNLOGGED TABLE "Clientes" (
     CONSTRAINT "PK_Clientes" PRIMARY KEY ("Id")
 );
 
-INSERT INTO public."Clientes" ("Id","Limite","Saldo") VALUES
+INSERT INTO "Clientes" ("Id","Limite","Saldo") VALUES
 	 (1, 1000 * -100,0),
 	 (2, 800 * -100,0),
 	 (3, 10000 * -100,0),
@@ -25,14 +25,16 @@ CREATE UNLOGGED TABLE "Transacoes" (
 
 CREATE INDEX "IX_Transacoes_ClienteId" ON public."Transacoes" USING btree ("ClienteId");
 
-CREATE FUNCTION  credit(cliente INTEGER, valor int8, descricao varchar(15))
+CREATE FUNCTION credit(cliente INTEGER, valor int8, descricao varchar(15))
 RETURNS int8 
 LANGUAGE plpgsql
 AS $$
 DECLARE
     Saldo int8;
 BEGIN
-  UPDATE "Clientes" SET "Saldo" = "Saldo" + valor WHERE "Id" = cliente
+  UPDATE "Clientes"
+  SET "Saldo" = "Saldo" + valor
+  WHERE "Id" = cliente
   RETURNING "Saldo" into Saldo;
 
   INSERT INTO "Transacoes" ("Valor", "Tipo", "Descricao", "Realizada_em", "ClienteId")
@@ -42,20 +44,25 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION  debit(cliente INTEGER, valor int8, descricao varchar(15))
+CREATE FUNCTION debit(cliente INTEGER, valor int8, descricao varchar(15))
 RETURNS int8 
 LANGUAGE plpgsql
 AS $$
 DECLARE
     Saldo int8;
 BEGIN
-    UPDATE "Clientes" SET "Saldo" = "Saldo"  - valor WHERE "Id" = cliente AND "Saldo" - valor >= "Limite"
+    UPDATE "Clientes"
+    SET "Saldo" = "Saldo"  - valor
+    WHERE "Id" = cliente
+    AND "Saldo" - valor >= "Limite"
     RETURNING "Saldo" into Saldo;
-   IF Saldo IS NOT NULL THEN
+   
+    IF Saldo IS NOT NULL THEN
 		INSERT INTO "Transacoes" ("Valor", "Tipo", "Descricao", "Realizada_em", "ClienteId")
 		VALUES( valor, 'd', descricao, now(), cliente);
-   END IF;
-   RETURN Saldo;
+    END IF;
+    
+    RETURN Saldo;
 END;
 $$;
 

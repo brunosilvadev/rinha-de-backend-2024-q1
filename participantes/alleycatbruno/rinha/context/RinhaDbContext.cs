@@ -7,12 +7,16 @@ public class RinhaDbContext(DbContextOptions<RinhaDbContext> options) : DbContex
 {
     public DbSet<Cliente> Clientes { get; set; }
     public DbSet<Transacao> Transacoes { get; set; }
+    public DbSet<RetornoTransacao> RetornoTransacao { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<Cliente>().HasKey(c => c.Id);
+        modelBuilder.Entity<Transacao>()
+            .HasOne(t => t.Cliente)
+            .WithMany(c => c.Transacoes)
+            .HasForeignKey(t => t.ClienteId);
 
-        modelBuilder.Entity<Transacao>().HasKey(t => t.TransacaoId);
+        modelBuilder.Entity<RetornoTransacao>().HasNoKey();
 
         base.OnModelCreating(modelBuilder);
     }

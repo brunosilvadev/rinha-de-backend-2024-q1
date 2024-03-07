@@ -2,11 +2,12 @@ using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 
 namespace rinha.model;
-public class Cliente
+public class Cliente(int Id, int Limite, long Saldo)
 {
-    public int Id { get; set; }
-    public decimal Limite { get; set; }
-    public decimal Saldo { get; set; }
+    public int Id { get; set; } = Id;
+    public int Limite { get; set; } = Limite;
+    public long Saldo { get; set; } = Saldo;
+    public ICollection<Transacao> Transacoes { get; set; } = [];
 }
 
 public class TransacaoRequest
@@ -17,48 +18,37 @@ public class TransacaoRequest
 }
 public class Transacao
 {
-    public Transacao() { }
-    public Transacao(TransacaoRequest request, int id)
+    public Transacao()
     {
-        if (id == 0)
-        {
-            throw new ArgumentNullException("Transacao deve conter Id do cliente");
-        }
-        if (request.Tipo is not ('d' or 'c'))
-        {
-            throw new ArgumentNullException("Transacao deve ser credito ou debito");
-        }
-
-        Valor = request.Valor;
-        Tipo = request.Tipo;
-        Descricao = request.Descricao;
-        Realizada_em = DateTime.Now.ToUniversalTime();
-        ClienteId = id;
-
+        Realizada_em = DateTime.UtcNow;
     }
-    [JsonIgnore]
     public int TransacaoId { get; set; }
     public decimal Valor { get; set; }
-    public char Tipo { get; set; }
+    [MaxLength(1)]
+    public string Tipo { get; set; }
+    [MaxLength(100)]
     public string? Descricao { get; set; }
-    public DateTime Realizada_em { get; set; }
-
     [JsonIgnore]
-    public int ClienteId { get; set; }
+    public int? ClienteId { get; set; }
+    [JsonIgnore]
+    public Cliente? Cliente { get; set; }
+    public DateTime Realizada_em { get; set; }
 }
-public class TransacaoResponse
-{
-    public decimal? Limite { get; set; }
-    public decimal Saldo { get; set; }
-}
+public record TransacaoResponse(int Limite, long Saldo);
 public class Saldo
 {
-    public decimal Total { get; set; }
-    public DateTime Data_extrato { get; set; }
-    public decimal Limite { get; set; }
+        public long Total { get; set; }
+        public DateTime Data_extrato { get; set; }
+        public int Limite { get; set; }
 }
 public class SaldoResponse
 {
     public required Saldo Saldo { get; set; }
     public List<Transacao> Ultimas_transacoes { get; set; } = [];
 }
+
+public class RetornoTransacao
+{
+    public long? saldo_atual { get; set; }
+}
+

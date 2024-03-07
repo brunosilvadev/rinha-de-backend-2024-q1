@@ -18,13 +18,13 @@ services:
     #     limits:
     #       cpus: "0.30"
     #       memory: "120MB"
-  # webapi_2:
-  #   <<: *api
-  #   hostname: webapi_2
-  #   environment:
-  #     - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=rinhadb;User Id=myuser;Password=mypassword;
-  #   ports:
-  #     - "5293:8080"
+  webapi_2:
+    <<: *api
+    hostname: webapi_2
+    environment:
+      - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=rinhadb;User Id=myuser;Password=mypassword;
+    ports:
+      - "5293:8080"
   nginx:
     image: nginx:latest
     volumes:
@@ -33,7 +33,7 @@ services:
       - "9999:9999"
     depends_on:
       - webapi_1
-      # - webapi_2
+      - webapi_2
     # deploy:
     #   resources:
     #     limits:

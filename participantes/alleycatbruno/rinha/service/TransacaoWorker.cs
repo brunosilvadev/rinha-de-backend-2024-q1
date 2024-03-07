@@ -1,28 +1,40 @@
-using rinha.persistence;
 using rinha.model;
+using rinha.persistence;
 using Microsoft.EntityFrameworkCore;
-using System.Security.Cryptography;
-using Npgsql;
-using NpgsqlTypes;
+using Microsoft.AspNetCore.Mvc;
 
 namespace rinha.transacao;
 
-public class TransacaoWorker(RinhaDbContext context, IValidatorService validatorService) : ITransacaoWorker
+public static class TransacaoWorker
 {
-    public async Task<TransacaoResponse> ProcessarTransacao(Transacao transacao, int id)
+    public static async Task<IResult> ExecutaTransacao(int id, [FromBody] Transacao transacao, [FromServices] RinhaDbContext dbContext)
     {
-        if (id < 1 || id > 5)
+        if(StaticValidator.IdOutOfRange(id))
         {
-            validatorService.NaoExiste = true;
-            return new TransacaoResponse();
+            return Results.NotFound();
         }
-        bool IsCreditNotDebit = transacao.Tipo == 'c';
 
-        var idParameter = new NpgsqlParameter("@cliente", NpgsqlDbType.Integer) { Value = id};
-        var valorParameter = new NpgsqlParameter("@valor", NpgsqlDbType.Bigint) { Value = transacao.Valor };
-        var descricaoParameter = new NpgsqlParameter("@descricao", NpgsqlDbType.Text) { Value = transacao.Descricao };
+        if(StaticValidator.ZanValidator(transacao))
+        {
+            return Results.UnprocessableEntity();
+        }
 
-        var conn = context.Database.GetDbConnection();
+        var saldos = transacao.Tipo == "c" ?
+        await dbContext.RetornoTransacao
+            .FromSqlInterpolated($"SELECT * FROM credit({id}, {(int)transacao.Valor}, {transacao.Descricao})")
+            .ToListAsync()
+            :
+        await dbContext.RetornoTransacao
+            .FromSqlInterpolated($"SELECT * FROM debit({id}, {(int)transacao.Valor}, {transacao.Descricao})")
+            .ToListAsync();
+
+        if (saldos.FirstOrDefault()?.saldo_atual is null)
+                return Results.UnprocessableEntity();
+
+        return Results.Ok(new TransacaoResponse(StaticValidator.Limites[id], saldos.FirstOrDefault()?.saldo_atual ?? 0));
+
+        /*
+                var conn = context.Database.GetDbConnection();
         await conn.OpenAsync();
         using (var command = conn.CreateCommand())
         {
@@ -45,30 +57,39 @@ public class TransacaoWorker(RinhaDbContext context, IValidatorService validator
                 Limite = Limites[id]
             };
         }
+        */
     }
 
-    public async Task<Cliente?> ClienteExiste(int id)
-        => await context.Clientes.AsNoTracking().FirstOrDefaultAsync(c =>c.Id == id);
+    // public async Task<string> TestarDB()
+    // {
+    //     try
+    //     {
+    //         await context.Database.ExecuteSqlRawAsync("SELECT 1;");
+    //         return "Estamos no ar";
+    //     }
+    //     catch (Exception e)
+    //     {
+    //         return e.Message;
+    //     }
+    // }
 
-    public async Task<string> TestarDB()
+    public static async Task<IResult> ConsultaExtrato(int id, [FromServices] RinhaDbContext dbContext)
     {
-        try
+        if(StaticValidator.IdOutOfRange(id))
         {
-            await context.Database.ExecuteSqlRawAsync("SELECT 1;");
-            return "Estamos no ar";
+            return Results.NotFound();
         }
-        catch (Exception e)
-        {
-            return e.Message;
-        }
+
+        var cliente = await dbContext.Clientes
+            .Include(c => c.Transacoes)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(c => c.Id == id);
+
+        var saldo = new Saldo() { Data_extrato = DateTime.Now, Limite = StaticValidator.Limites[id], Total = cliente.Saldo };
+        var ultimasTransacoes = cliente.Transacoes
+            .OrderByDescending(t => t.Realizada_em)
+            .Take(10)
+            .ToList();
+        return Results.Ok(new SaldoResponse() { Saldo = saldo, Ultimas_transacoes = ultimasTransacoes });
     }
-
-    private static readonly int[] Limites = [0, 1000 * 100, 800 * 100, 10000 * 100, 100000 * 100, 5000 * 100];
-}
-
-public interface  ITransacaoWorker
-{
-    Task<TransacaoResponse> ProcessarTransacao(Transacao transacao, int id);
-    Task<Cliente?> ClienteExiste(int id);
-    Task<string> TestarDB();
 }

@@ -1,69 +1,19 @@
 using Microsoft.AspNetCore.Http.Timeouts;
 using Microsoft.EntityFrameworkCore;
-using rinha.model;
 using rinha.persistence;
 using rinha.transacao;
 
 var builder = WebApplication.CreateSlimBuilder(args);
 
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-builder.Services.AddScoped<ITransacaoWorker, TransacaoWorker>();
-builder.Services.AddScoped<IExtratoWorker, ExtratoWorker>();
-builder.Services.AddScoped<IValidatorService, ValidatorService>();
-
 builder.Services.AddDbContextPool<RinhaDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")), poolSize:200);
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")), poolSize:100);
 
 builder.Services.AddRequestTimeouts(options => options.DefaultPolicy = new RequestTimeoutPolicy { Timeout = TimeSpan.FromSeconds(60) });
 
 var app = builder.Build();
 
-app.UseSwagger();
-app.UseSwaggerUI();
+app.MapPost("/clientes/{id}/transacoes", TransacaoWorker.ExecutaTransacao);
 
-app.MapPost("/clientes/{id}/transacoes",
-    async (int id, TransacaoRequest txn, ITransacaoWorker worker, IValidatorService errService) =>
-{
-    if(!errService.ValidaRequest(txn))
-    {
-        return Results.UnprocessableEntity();
-    }
-
-    var transacao = new Transacao(txn,id);
-    var operacao = await worker.ProcessarTransacao(transacao, id);
-    
-    if(errService.NaoExiste)
-    {
-        return Results.NotFound();
-    }
-
-    if(errService.Overdraft)
-    {
-        return Results.UnprocessableEntity();
-    }
-
-    return Results.Ok(operacao);
-});
-
-app.MapGet("/clientes/{id}/extrato",
-    async (int id, IExtratoWorker worker, IValidatorService errorService) =>
-{
-    var saldo = await worker.ConsultarSaldo(id);
-
-    if(errorService.NaoExiste)
-    {
-        return Results.NotFound();
-    }
-    
-    return Results.Ok(saldo);
-});
-
-app.MapGet("/test-api", () => true);
-
-app.MapGet("/test-db", (ITransacaoWorker worker) =>
-{
-    return worker.TestarDB();
-});
+app.MapGet("/clientes/{id}/extrato", TransacaoWorker.ConsultaExtrato);
 
 app.Run();

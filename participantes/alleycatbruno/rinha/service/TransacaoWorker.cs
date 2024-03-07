@@ -2,12 +2,14 @@ using rinha.model;
 using rinha.persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc;
+using Npgsql;
+using NpgsqlTypes;
 
 namespace rinha.transacao;
 
-public static class TransacaoWorker
+public class TransacaoWorker (RinhaDbContext dbContext): ITransacaoWorker
 {
-    public static async Task<IResult> ExecutaTransacao(int id, [FromBody] Transacao transacao, [FromServices] RinhaDbContext dbContext)
+    public async Task<IResult> ExecutaTransacao(int id, [FromBody] Transacao transacao)
     {
         if(StaticValidator.IdOutOfRange(id))
         {
@@ -19,61 +21,32 @@ public static class TransacaoWorker
             return Results.UnprocessableEntity();
         }
 
-        var saldos = transacao.Tipo == "c" ?
-        await dbContext.RetornoTransacao
-            .FromSqlInterpolated($"SELECT * FROM credit({id}, {(int)transacao.Valor}, {transacao.Descricao})")
-            .ToListAsync()
-            :
-        await dbContext.RetornoTransacao
-            .FromSqlInterpolated($"SELECT * FROM debit({id}, {(int)transacao.Valor}, {transacao.Descricao})")
-            .ToListAsync();
+        bool IsCreditNotDebit = transacao.Tipo == "c";
 
-        if (saldos.FirstOrDefault()?.saldo_atual is null)
-                return Results.UnprocessableEntity();
-
-        return Results.Ok(new TransacaoResponse(StaticValidator.Limites[id], saldos.FirstOrDefault()?.saldo_atual ?? 0));
-
-        /*
-                var conn = context.Database.GetDbConnection();
+        var conn = dbContext.Database.GetDbConnection();
         await conn.OpenAsync();
-        using (var command = conn.CreateCommand())
+        using var command = conn.CreateCommand();
+
+        var idParameter = new NpgsqlParameter("@cliente", NpgsqlDbType.Integer) { Value = id};
+        var valorParameter = new NpgsqlParameter("@valor", NpgsqlDbType.Bigint) { Value = transacao.Valor };
+        var descricaoParameter = new NpgsqlParameter("@descricao", NpgsqlDbType.Text) { Value = transacao.Descricao };
+        
+        command.CommandText = IsCreditNotDebit ? "Select credit(@cliente, @valor, @descricao);" : "Select debit(@cliente, @valor, @descricao);";
+        command.Parameters.Add(idParameter);
+        command.Parameters.Add(valorParameter);
+        command.Parameters.Add(descricaoParameter);
+        var result = await command.ExecuteScalarAsync();
+        var returnedValue = result != DBNull.Value ? Convert.ToInt64(result) : 0;
+
+        if (result == DBNull.Value)
         {
-            command.CommandText = IsCreditNotDebit ? "Select debit(@cliente, @valor, @descricao);" : "Select debit(@cliente, @valor, @descricao);";
-            command.Parameters.Add(idParameter);
-            command.Parameters.Add(valorParameter);
-            command.Parameters.Add(descricaoParameter);
-            var result = await command.ExecuteScalarAsync();
-            var returnedValue = result != DBNull.Value ? Convert.ToInt64(result) : 0;
-
-            if (result == DBNull.Value)
-            {
-                validatorService.Overdraft = true;
-                return new TransacaoResponse();
-            }
-
-            return new TransacaoResponse()
-            {
-                Saldo = returnedValue,
-                Limite = Limites[id]
-            };
+            return Results.UnprocessableEntity();
         }
-        */
+
+        return Results.Ok(new TransacaoResponse(StaticValidator.Limites[id], returnedValue));        
     }
 
-    // public async Task<string> TestarDB()
-    // {
-    //     try
-    //     {
-    //         await context.Database.ExecuteSqlRawAsync("SELECT 1;");
-    //         return "Estamos no ar";
-    //     }
-    //     catch (Exception e)
-    //     {
-    //         return e.Message;
-    //     }
-    // }
-
-    public static async Task<IResult> ConsultaExtrato(int id, [FromServices] RinhaDbContext dbContext)
+    public async Task<IResult> ConsultaExtrato(int id)
     {
         if(StaticValidator.IdOutOfRange(id))
         {
@@ -92,4 +65,10 @@ public static class TransacaoWorker
             .ToList();
         return Results.Ok(new SaldoResponse() { Saldo = saldo, Ultimas_transacoes = ultimasTransacoes });
     }
+}
+
+public interface ITransacaoWorker
+{
+    Task<IResult> ExecutaTransacao(int id, [FromBody] Transacao transacao);
+    Task<IResult> ConsultaExtrato(int id);
 }

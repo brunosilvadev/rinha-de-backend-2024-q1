@@ -47,8 +47,3 @@ public class SaldoResponse
     public List<Transacao> Ultimas_transacoes { get; set; } = [];
 }
 
-public class RetornoTransacao
-{
-    public long? saldo_atual { get; set; }
-}
-
